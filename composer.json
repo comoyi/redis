@@ -1,0 +1,20 @@
+{
+    "name": "comoyi/redis",
+    "description": "A redis class",
+    "keywords": ["redis"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Michael Chi",
+            "email": "chicong@outlook.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Comoyi\\Redis\\": "src/Redis"
+        }
+    }
+}
