@@ -1,6 +1,6 @@
 <?php
 
-namespace My\Redis;
+namespace Comoyi\Redis;
 
 use Redis;
 

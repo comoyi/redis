@@ -1,10 +1,10 @@
 <?php
 
-namespace My\Redis;
+namespace Comoyi\Redis;
 
-use My\Redis\RedisSentinel;
-use My\Redis\RedisMaster;
-use My\Redis\RedisSlave;
+use Comoyi\Redis\RedisSentinel;
+use Comoyi\Redis\RedisMaster;
+use Comoyi\Redis\RedisSlave;
 
 /**
  * redis操作类
