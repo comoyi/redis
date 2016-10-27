@@ -1,6 +1,8 @@
 <?php
 
-namespace My\Redis;
+namespace Comoyi\Redis;
+
+use Redis;
 
 /**
  * redis master
@@ -42,7 +44,7 @@ class RedisMaster {
      * 连接
      */
     public function connect(){
-        $this->handler = new \Redis();
+        $this->handler = new Redis();
         $this->handler->connect($this->configs['host'], $this->configs['port']);
     }
 
