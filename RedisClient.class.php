@@ -9,7 +9,7 @@ use My\Redis\RedisSlave;
 /**
  * redis操作类
  */
-class Redis {
+class RedisClient {
 
     /* 配置项 */
     private $configs = [];
