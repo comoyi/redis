@@ -378,7 +378,19 @@ class RedisClient {
     }
 
     /**
-     * 从有序集合获取指定范围内的成员
+     * 获取有序集合中成员的score
+     *
+     * @param string $key
+     * @param string $member
+     * @return mixed
+     */
+    public function zScore($key, $member) {
+        $result = $this->getHandler($this->judge(__FUNCTION__))->zScore($key, $member);
+        return $result;
+    }
+
+    /**
+     * 从有序集合获取指定范围内的成员（按score从小到大）
      *
      * @param string $key key
      * @param int $start 起始值
@@ -392,7 +404,34 @@ class RedisClient {
     }
 
     /**
+     * 获取有序集合指定范围内的元素，根据score从高到低
+     *
+     * @param string $key
+     * @param int $start
+     * @param int $stop
+     * @param bool $isWithScore
+     * @return mixed
+     */
+    public function zRevRange($key, $start, $stop, $isWithScore = false) {
+        $result = $this->getHandler($this->judge(__FUNCTION__))->zRevRange($key, $start, $stop, $isWithScore);
+        return $result;
+    }
+
+    /**
+     * 获取member的排名，排名根据score从高到低，排名从0开始
+     *
+     * @param string $key
+     * @param string $member
+     * @return mixed
+     */
+    public function zRevRank($key, $member) {
+        $result = $this->getHandler($this->judge(__FUNCTION__))->zRevRank($key, $member);
+        return $result;
+    }
+
+    /**
      * 从有序集合移除指定的成员
+     *
      * @param string $key key
      * @param string $member 成员
      * @return
@@ -429,14 +468,26 @@ class RedisClient {
     }
 
     /**
-     * 设置剩余有效时长
+     * 设置生存时间
      *
      * @param string $key key
-     * @param int $exp 剩余时长 （单位：秒）
+     * @param int $seconds 生存时间（单位：秒）
      * @return
      */
-    public function expire($key, $exp){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->expire($key, $exp);
+    public function expire($key, $seconds){
+        $result = $this->getHandler($this->judge(__FUNCTION__))->expire($key, $seconds);
+        return $result;
+    }
+
+    /**
+     * 设置生存时间-毫秒级
+     *
+     * @param string $key
+     * @param int $milliSeconds 生存时间（单位：毫秒）
+     * @return mixed
+     */
+    public function pExpire($key, $milliSeconds){
+        $result = $this->getHandler($this->judge(__FUNCTION__))->pExpire($key, $milliSeconds);
         return $result;
     }
 
@@ -488,11 +539,23 @@ class RedisClient {
      * 自增 - 增幅为指定值
      *
      * @param string $key key
-     * @param int $amount 增加的数值
+     * @param int $increment 增量
      * @return
      */
-    public function incrBy($key, $amount) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->incrBy($key, $amount);
+    public function incrBy($key, $increment) {
+        $result = $this->getHandler($this->judge(__FUNCTION__))->incrBy($key, $increment);
+        return $result;
+    }
+
+    /**
+     * 自减 - 减幅为指定值
+     *
+     * @param string $key key
+     * @param int $decrement 减量
+     * @return
+     */
+    public function decrBy($key, $decrement) {
+        $result = $this->getHandler($this->judge(__FUNCTION__))->decrBy($key, $decrement);
         return $result;
     }
 
@@ -517,6 +580,33 @@ class RedisClient {
      */
     public function rPush($key, $value) {
         $result = $this->getHandler($this->judge(__FUNCTION__))->rPush($key, $value);
+        return $result;
+    }
+
+    /**
+     * 从队列中取出指定范围内的元素
+     *
+     * start stop 从0开始 - The offsets start and stop are zero-based indexes, with 0 being the first element of the list
+     * These offsets can also be negative numbers indicating offsets starting at the end of the list. For example, -1 is the last element of the list, -2 the penultimate, and so on.
+     *
+     * @param string $key
+     * @param int $start 起始
+     * @param int $stop 截止
+     */
+    public function lRange($key, $start, $stop) {
+        $result = $this->getHandler($this->judge(__FUNCTION__))->lRange($key, $start, $stop);
+        return $result;
+    }
+
+    /**
+     * 对列表进行修剪
+     *
+     * @param string $key
+     * @param int $start 起始
+     * @param int $stop 截止
+     */
+    public function lTrim($key, $start, $stop) {
+        $result = $this->getHandler($this->judge(__FUNCTION__))->lTrim($key, $start, $stop);
         return $result;
     }
 
