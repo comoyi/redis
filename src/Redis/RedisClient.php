@@ -231,7 +231,10 @@ class RedisClient {
 
             // 如果当前不在默认库则切换到指定库
             if (0 != $this->currentDb) {
-                $handler->select($this->currentDb);
+                $res = $handler->select($this->currentDb);
+                if (!$res) {
+                    throw new Exception('change selected database failed');
+                }
             }
 
         }
@@ -242,15 +245,24 @@ class RedisClient {
      * 切换database
      *
      * @param int $index db索引
+     * @throws Exception
      */
     public function select($index = 0) {
 
+        $index = intval($index);
+
         if (isset($this->pool['master']) && !is_null($this->pool['master'])) {
-            $this->pool['master']->getHandler()->select($index);
+            $res = $this->pool['master']->getHandler()->select($index);
+            if (!$res) {
+                throw new Exception('change selected database failed');
+            }
         }
 
         if (isset($this->pool['slave']) && !is_null($this->pool['slave'])) {
-            $this->pool['slave']->getHandler()->select($index);
+            $res = $this->pool['slave']->getHandler()->select($index);
+            if (!$res) {
+                throw new Exception('change selected database failed');
+            }
         }
 
         // 记录当前redis db
