@@ -21,7 +21,7 @@ $config = [
             [
                 'host' => '127.0.0.1',
                 'port' => '6379',
-            ]
+            ],
         ],
         'slaves' => [
             [
@@ -31,7 +31,7 @@ $config = [
             [
                 'host' => '127.0.0.1',
                 'port' => '6382',
-            ]
+            ],
         ],
     ],
     'sentinel' => [
@@ -43,9 +43,9 @@ $config = [
             [
                 'host' => '127.0.0.1',
                 'port' => '5001',
-            ]
-        ]
-    ]
+            ],
+        ],
+    ],
 ];
 
 $redis = new RedisClient($config);

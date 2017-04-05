@@ -5,28 +5,54 @@ namespace Comoyi\Redis;
 use Comoyi\Redis\RedisSentinel;
 use Comoyi\Redis\RedisMaster;
 use Comoyi\Redis\RedisSlave;
+use Exception;
 
 /**
  * redis操作类
  */
 class RedisClient {
 
-    /* 配置项 */
-    private $configs = [];
+    /**
+     * 配置
+     *
+     * @var array
+     */
+    protected $configs = [];
 
-    /* 用于执行redis操作的池 */
-    private $pool;
+    /**
+     * 用于执行redis操作的池
+     *
+     * @var array
+     */
+    protected $pool = [];
 
-    /* 哨兵对象 */
-    private $sentinel;
+    /**
+     * 当前选择的db
+     *
+     * @var int
+     */
+    protected $currentDb = 0;
 
-    /* 要操作的master名称 */
-    private $masterName;
+    /**
+     * 哨兵对象
+     *
+     * @var \Comoyi\Redis\RedisSentinel
+     */
+    protected $sentinel = null;
+
+    /**
+     * 要操作的master名称
+     *
+     * @var string
+     */
+    protected $masterName = '';
 
     /**
      * 构造函数
+     *
+     * @param array $config
      */
-    public function __construct($config = []){
+    public function __construct($config = []) {
 
         $defaultConfig = [
             'type' => 'direct', // direct: 直连, sentinel: 由sentinel决定host与port
@@ -37,7 +63,7 @@ class RedisClient {
                     [
                         'host' => '127.0.0.1',
                         'port' => '6379',
-                    ]
+                    ],
                 ],
                 'slaves' => [
                     [
@@ -47,7 +73,7 @@ class RedisClient {
                     [
                         'host' => '127.0.0.1',
                         'port' => '6382',
-                    ]
+                    ],
                 ],
             ],
             'sentinel' => [
@@ -59,8 +85,8 @@ class RedisClient {
                     [
                         'host' => '127.0.0.1',
                         'port' => '5001',
-                    ]
-                ]
+                    ],
+                ],
             ],
         ];
 
@@ -69,31 +95,29 @@ class RedisClient {
 
         $this->masterName = $this->configs['master_name'];
 
-        if('sentinel' === $this->configs['type']){ // sentinel方式
+        if('sentinel' === $this->configs['type']) { // sentinel方式
             $this->sentinel = new RedisSentinel(); //创建sentinel
 
-            /* 根据配置添加sentinel */
+            // 根据配置添加sentinel
             foreach ($this->configs['sentinel']['sentinels'] as $s) {
                 $this->sentinel->addnode($s['host'], $s['port']);
             }
         }
 
-        $this->pool['master'] = new RedisMaster($this->getMasterConfigs());
-        $this->pool['slave'] = new RedisSlave($this->getSlaveConfigs());
     }
 
     /**
      * 获取master配置
      */
-    public function getMasterConfigs(){
-        if('sentinel' === $this->configs['type']){
+    protected function getMasterConfigs() {
+        if('sentinel' === $this->configs['type']) {
             return $this->getMasterConfigsBySentinel();
         }
         $randomMaster = rand(0, (count($this->configs['direct']['masters']) - 1)); // 随机取一个master的配置
         $config = [
             'host' => $this->configs['direct']['masters'][$randomMaster]['host'],
             'port' => $this->configs['direct']['masters'][$randomMaster]['port'],
-            'password' => $this->configs['password']
+            'password' => $this->configs['password'],
         ];
         return $config;
     }
@@ -101,11 +125,11 @@ class RedisClient {
     /**
      * 获取slave配置
      */
-    public function getSlaveConfigs(){
-        if('sentinel' === $this->configs['type']){
+    protected function getSlaveConfigs() {
+        if('sentinel' === $this->configs['type']) {
             return $this->getSlaveConfigsBySentinel();
         }
-        if(0 === count($this->configs['direct']['slaves'])){ // 没有slave则取master
+        if(0 === count($this->configs['direct']['slaves'])) { // 没有slave则取master
             return $this->getMasterConfigs();
         }
         $randomSlave = rand(0, (count($this->configs['direct']['slaves']) - 1)); // 随机取一个slave的配置
@@ -120,7 +144,7 @@ class RedisClient {
     /**
      * 通过sentinel获取master配置
      */
-    public function getMasterConfigsBySentinel(){
+    protected function getMasterConfigsBySentinel() {
         $masters = $this->sentinel->get_masters($this->masterName);
         $config = [
             'host' => $masters[0],
@@ -133,9 +157,9 @@ class RedisClient {
     /**
      * 通过sentinel获取slave配置
      */
-    public function getSlaveConfigsBySentinel(){
+    protected function getSlaveConfigsBySentinel() {
         $slaves = $this->sentinel->get_slaves($this->masterName);
-        if(0 === count($slaves)){ // 没有slave则取master
+        if(0 === count($slaves)) { // 没有slave则取master
             return $this->getMasterConfigsBySentinel();
         }
         $random = rand(0, (count($slaves) - 1)); // 随机取一个slave的配置
@@ -149,16 +173,23 @@ class RedisClient {
 
     /**
      * 设置配置
+     *
+     * @param array $config
      */
-    private function setConfig($config) {
+    protected function setConfig($config) {
         $this->configs = array_merge($this->configs, $config);
     }
 
     /**
      * 判断只读还是读写
+     *
+     * @param string $command
+     * @return string
      */
-    private function judge($command) {
+    protected function judge($command) {
         $masterOrSlave = 'master';
+
+        // 只读的操作
         $readOnlyCommands = [
             'get',
             'hGet',
@@ -167,22 +198,41 @@ class RedisClient {
             'sMembers',
             'zRange',
             'exists',
-        ]; //只读的操作
-       if (in_array($command, $readOnlyCommands)) {
-            $masterOrSlave = 'slave';
-       }
-       return $masterOrSlave;
+        ];
+
+        if (in_array($command, $readOnlyCommands)) {
+             $masterOrSlave = 'slave';
+        }
+        return $masterOrSlave;
     }
 
     /**
      * 获取连接
      *
      * @param string $masterOrSlave [master / slave]
-     * @return
+     * @return mixed
+     * @throws Exception
      */
-    private function getHandler($masterOrSlave) {
-       $handler = $this->pool[$masterOrSlave]->getHandler();
-       return $handler;
+    protected function getHandler($masterOrSlave) {
+        if (!isset($this->pool[$masterOrSlave]) || is_null($this->pool[$masterOrSlave])) {
+            // 创建
+            switch($masterOrSlave) {
+                case 'master':
+                    $redis = new RedisMaster($this->getMasterConfigs());
+                    break;
+                case 'slave':
+                    $redis = new RedisSlave($this->getSlaveConfigs());
+                    break;
+                default:
+                    throw new Exception('must be master or slave');
+            }
+            $this->pool[$masterOrSlave] = $redis;
+            $handler = $this->pool[$masterOrSlave]->getHandler();
+            if (0 != $this->currentDb) {
+                $handler->select($this->currentDb);
+            }
+        }
+        return $this->pool[$masterOrSlave]->getHandler();
     }
 
     /**
@@ -191,8 +241,17 @@ class RedisClient {
      * @param int $index db索引
      */
     public function select($index = 0) {
-        $this->pool['master']->getHandler()->select($index);
-        $this->pool['slave']->getHandler()->select($index);
+
+        if (isset($this->pool['master']) && !is_null($this->pool['master'])) {
+            $this->pool['master']->getHandler()->select($index);
+        }
+
+        if (isset($this->pool['slave']) && !is_null($this->pool['slave'])) {
+            $this->pool['slave']->getHandler()->select($index);
+        }
+
+        // 记录当前redis db
+        $this->currentDb = $index;
     }
 
     /**
@@ -203,7 +262,7 @@ class RedisClient {
      * @param string $script 脚本代码
      * @param array $args 传给脚本的KEYS, ARGV组成的索引数组（不是key-value对应，是先KEYS再ARGV的索引数组，KEYS, ARGV数量可以不同） 例：['key1', 'key2', 'argv1', 'argv2', 'argv3']
      * @param int $quantity 传给脚本的KEY数量
-     * @return
+     * @return mixed
      */
     public function evaluate ($script, $args, $quantity) {
         return $this->getHandler($this->judge(__FUNCTION__))->eval($script, $args, $quantity);
@@ -217,6 +276,7 @@ class RedisClient {
      * @param string $scriptSha 脚本代码sha1值
      * @param array $args 传给脚本的KEYS, ARGV组成的索引数组（不是key-value对应，是先KEYS再ARGV的索引数组，KEYS, ARGV数量可以不同） 例：['key1', 'key2', 'argv1', 'argv2', 'argv3']
      * @param int $quantity 传给脚本的KEY数量
+     * @return mixed
      */
     public function evalSha($scriptSha, $args, $quantity) {
         return $this->getHandler($this->judge(__FUNCTION__))->evalSha($scriptSha, $args, $quantity);
@@ -227,7 +287,7 @@ class RedisClient {
      *
      * @param string $command
      * @param string $script
-     * @return
+     * @return mixed
      */
     public function script($command, $script) {
         return $this->getHandler($this->judge(__FUNCTION__))->script($command, $script);
@@ -237,6 +297,7 @@ class RedisClient {
      * 根据正则获取key
      *
      * @param $pattern
+     * @return mixed
      */
     public function keys($pattern) {
         return $this->getHandler($this->judge(__FUNCTION__))->keys($pattern);
@@ -246,7 +307,7 @@ class RedisClient {
      * 获取key对应的值
      *
      * @param string $key key
-     * @return
+     * @return mixed
      */
     public function get($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->get($key);
@@ -268,7 +329,7 @@ class RedisClient {
      * @param string $key key
      * @param string $value value
      * @param array $opt 可选参数  可选参数可以自由组合 nx: key不存在时有效, xx: key存在时有效, ex: ttl[单位：s], px: ttl[单位：ms]
-     * @return
+     * @return mixed
      */
     public function set($key, $value, $opt = null) {
         return $this->getHandler($this->judge(__FUNCTION__))->set($key, $value, $opt);
@@ -286,7 +347,7 @@ class RedisClient {
      * @param string $key key
      * @param int $seconds 剩余有效期 （单位：s / 秒）
      * @param string $value
-     * @return
+     * @return mixed
      */
     public function setEx($key, $seconds, $value) {
         return $this->getHandler($this->judge(__FUNCTION__))->setEx($key, $seconds, $value);
@@ -303,7 +364,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $value value
-     * @return
+     * @return mixed
      */
     public function setNx($key, $value) {
         return $this->getHandler($this->judge(__FUNCTION__))->setNx($key, $value);
@@ -314,7 +375,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param int $seconds 生存时长（单位：秒）
-     * @return
+     * @return mixed
      */
     public function expire($key, $seconds) {
         return $this->getHandler($this->judge(__FUNCTION__))->expire($key, $seconds);
@@ -336,7 +397,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param int $timestamp 生存截止时间戳
-     * @return
+     * @return mixed
      */
     public function expireAt($key, $timestamp) {
         return $this->getHandler($this->judge(__FUNCTION__))->expireAt($key, $timestamp);
@@ -347,7 +408,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param int $millisecondsTimestamp 生存截止时间戳（单位：毫秒）
-     * @return
+     * @return mixed
      */
     public function pExpireAt($key, $millisecondsTimestamp) {
         return $this->getHandler($this->judge(__FUNCTION__))->pExpireAt($key, $millisecondsTimestamp);
@@ -357,6 +418,7 @@ class RedisClient {
      * 获取key的生存时间
      *
      * @param string $key
+     * @return mixed
      */
     public function ttl($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->ttl($key);
@@ -366,7 +428,7 @@ class RedisClient {
      * 删除key
      *
      * @param string $key key
-     * @return
+     * @return mixed
      */
     public function del($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->del($key);
@@ -376,7 +438,7 @@ class RedisClient {
      * 判断key是否存在
      *
      * @param string $key
-     * @return
+     * @return mixed
      */
     public function exists($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->exists($key);
@@ -386,7 +448,7 @@ class RedisClient {
      * 发布消息到指定频道
      * @param string $channel 频道
      * @param string $message 消息内容
-     * @return
+     * @return mixed
      */
     public function publish($channel, $message) {
         return $this->getHandler($this->judge(__FUNCTION__))->publish($channel, $message);
@@ -396,7 +458,7 @@ class RedisClient {
      * 自增 - 增幅为1
      *
      * @param string $key key
-     * @return
+     * @return mixed
      */
     public function incr($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->incr($key);
@@ -407,7 +469,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param int $increment 增量
-     * @return
+     * @return mixed
      */
     public function incrBy($key, $increment) {
         return $this->getHandler($this->judge(__FUNCTION__))->incrBy($key, $increment);
@@ -417,7 +479,7 @@ class RedisClient {
      * 自减 - 减幅为1
      *
      * @param string $key key
-     * @return
+     * @return mixed
      */
     public function decr($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->decr($key);
@@ -428,7 +490,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param int $decrement 减量
-     * @return
+     * @return mixed
      */
     public function decrBy($key, $decrement) {
         return $this->getHandler($this->judge(__FUNCTION__))->decrBy($key, $decrement);
@@ -439,7 +501,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $field
-     * @return
+     * @return mixed
      */
     public function hGet($key, $field) {
         return $this->getHandler($this->judge(__FUNCTION__))->hGet($key, $field);
@@ -450,7 +512,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param array $array field索引数组
-     * @return
+     * @return mixed
      */
     public function hMGet($key, $array) {
         return $this->getHandler($this->judge(__FUNCTION__))->hMGet($key, $array);
@@ -460,7 +522,7 @@ class RedisClient {
      * 获取整个hash的值
      *
      * @param string $key key
-     * @return
+     * @return mixed
      */
     public function hGetAll($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->hGetAll($key);
@@ -472,7 +534,7 @@ class RedisClient {
      * @param string $key key
      * @param string $field
      * @param string $value
-     * @return
+     * @return mixed
      */
     public function hSet($key, $field, $value) {
         return $this->getHandler($this->judge(__FUNCTION__))->hSet($key, $field, $value);
@@ -483,7 +545,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param array $array 要设置的hash field 例：['field1' => 'value1', 'field2' => 'value2']
-     * @return
+     * @return mixed
      */
     public function hMSet($key, $array) {
         return $this->getHandler($this->judge(__FUNCTION__))->hMSet($key, $array);
@@ -497,7 +559,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $field
-     * @return
+     * @return mixed
      */
     public function hExists($key, $field) {
         return $this->getHandler($this->judge(__FUNCTION__))->hExists($key, $field);
@@ -507,6 +569,7 @@ class RedisClient {
      * 获取hash所有field
      *
      * @param string $key
+     * @return mixed
      */
     public function hKeys($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->hKeys($key);
@@ -518,7 +581,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $field
-     * @return
+     * @return mixed
      */
     public function hDel($key, $field) {
         return $this->getHandler($this->judge(__FUNCTION__))->hDel($key, $field);
@@ -529,7 +592,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $value value
-     * @return
+     * @return mixed
      */
     public function lPush($key, $value) {
         return $this->getHandler($this->judge(__FUNCTION__))->lPush($key, $value);
@@ -540,7 +603,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $value value
-     * @return
+     * @return mixed
      */
     public function rPush($key, $value) {
         return $this->getHandler($this->judge(__FUNCTION__))->rPush($key, $value);
@@ -575,6 +638,7 @@ class RedisClient {
      * @param string $key
      * @param int $start 起始
      * @param int $stop 截止
+     * @return mixed
      */
     public function lRange($key, $start, $stop) {
         return $this->getHandler($this->judge(__FUNCTION__))->lRange($key, $start, $stop);
@@ -586,6 +650,7 @@ class RedisClient {
      * @param string $key
      * @param int $start 起始
      * @param int $stop 截止
+     * @return mixed
      */
     public function lTrim($key, $start, $stop) {
         return $this->getHandler($this->judge(__FUNCTION__))->lTrim($key, $start, $stop);
@@ -595,7 +660,7 @@ class RedisClient {
      * 获取列表长度
      *
      * @param string $key
-     * @return
+     * @return mixed
      */
     public function lLen($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->lLen($key);
@@ -606,7 +671,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $member 成员
-     * @return
+     * @return mixed
      */
     public function sAdd($key, $member) {
         return $this->getHandler($this->judge(__FUNCTION__))->sAdd($key, $member);
@@ -616,7 +681,7 @@ class RedisClient {
      * 获取集合所有成员
      *
      * @param string $key key
-     * @return
+     * @return mixed
      */
     public function sMembers($key) {
         return $this->getHandler($this->judge(__FUNCTION__))->sMembers($key);
@@ -627,7 +692,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $member 成员
-     * @return
+     * @return mixed
      */
     public function sRem($key, $member) {
         return $this->getHandler($this->judge(__FUNCTION__))->sRem($key, $member);
@@ -639,7 +704,7 @@ class RedisClient {
      * @param string $key key
      * @param int $score score
      * @param string $value value
-     * @return
+     * @return mixed
      */
     public function zAdd($key, $score, $value) {
         return $this->getHandler($this->judge(__FUNCTION__))->zAdd($key, $score, $value);
@@ -662,7 +727,7 @@ class RedisClient {
      * @param string $key key
      * @param int $increment 增长的数值
      * @param string $value value值
-     * @return
+     * @return mixed
      */
     public function zIncrBy($key, $increment, $value) {
         return $this->getHandler($this->judge(__FUNCTION__))->zIncrBy($key, $increment, $value);
@@ -675,7 +740,7 @@ class RedisClient {
      * @param int $start 起始值
      * @param int $stop 截止值
      * @param bool $isWithScore 是否包含score值
-     * @return
+     * @return mixed
      */
     public function zRange($key, $start, $stop, $isWithScore = false) {
         return $this->getHandler($this->judge(__FUNCTION__))->zRange($key, $start, $stop, $isWithScore);
@@ -701,6 +766,7 @@ class RedisClient {
      * @param int $max 最大值
      * @param int $min 最小值
      * @param bool $isWithScore
+     * @return mixed
      */
     public function zRevRangeByScore($key, $max, $min, $isWithScore = false) {
         return $this->getHandler($this->judge(__FUNCTION__))->zRevRangeByScore($key, $max, $min, $isWithScore);
@@ -723,7 +789,7 @@ class RedisClient {
      *
      * @param string $key key
      * @param string $member 成员
-     * @return
+     * @return mixed
      */
     public function zRem($key, $member) {
         return $this->getHandler($this->judge(__FUNCTION__))->zRem($key, $member);
@@ -735,7 +801,7 @@ class RedisClient {
      * @param string $key key
      * @param int $start 起始排名 （包含） 从0开始
      * @param int $stop 截止排名 （包含） 从0开始
-     * @return
+     * @return mixed
      */
     public function zRemRangeByRank($key, $start, $stop) {
         return $this->getHandler($this->judge(__FUNCTION__))->zRemRangeByRank($key, $start, $stop);
@@ -747,7 +813,7 @@ class RedisClient {
      * @param string $key key
      * @param int $min 起始score （包含）
      * @param int $max 截止score （包含）
-     * @return
+     * @return mixed
      */
     public function zRemRangeByScore($key, $min, $max) {
         return $this->getHandler($this->judge(__FUNCTION__))->zRemRangeByScore($key, $min, $max);
@@ -758,6 +824,7 @@ class RedisClient {
      *
      * @param $method
      * @param $parameters
+     * @return mixed
      */
     public function __call($method, $parameters) {
         return $this->getHandler($this->judge($method))->{$method}(...$parameters);
