@@ -228,9 +228,12 @@ class RedisClient {
             }
             $this->pool[$masterOrSlave] = $redis;
             $handler = $this->pool[$masterOrSlave]->getHandler();
+
+            // 如果当前不在默认库则切换到指定库
             if (0 != $this->currentDb) {
                 $handler->select($this->currentDb);
             }
+
         }
         return $this->pool[$masterOrSlave]->getHandler();
     }
