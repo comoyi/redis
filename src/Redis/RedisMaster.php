@@ -21,7 +21,7 @@ class RedisMaster {
         $defaultConfig = [
             'host' => '',
             'port' => '',
-            'password' => ''
+            'password' => '',
         ];
         $this->setConfigs($defaultConfig);
         $this->setConfigs($config);
