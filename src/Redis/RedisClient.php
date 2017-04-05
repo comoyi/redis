@@ -36,17 +36,17 @@ class RedisClient {
                 'masters' => [
                     [
                         'host' => '127.0.0.1',
-                        'port' => '6379'
+                        'port' => '6379',
                     ]
                 ],
                 'slaves' => [
                     [
                         'host' => '127.0.0.1',
-                        'port' => '6381'
+                        'port' => '6381',
                     ],
                     [
                         'host' => '127.0.0.1',
-                        'port' => '6382'
+                        'port' => '6382',
                     ]
                 ],
             ],
@@ -54,14 +54,14 @@ class RedisClient {
                 'sentinels' => [
                     [
                         'host' => '127.0.0.1',
-                        'port' => '5000'
+                        'port' => '5000',
                     ],
                     [
                         'host' => '127.0.0.1',
-                        'port' => '5001'
+                        'port' => '5001',
                     ]
                 ]
-            ]
+            ],
         ];
 
         $this->setConfig($defaultConfig);
@@ -112,7 +112,7 @@ class RedisClient {
         $config = [
             'host' => $this->configs['direct']['slaves'][$randomSlave]['host'],
             'port' => $this->configs['direct']['slaves'][$randomSlave]['port'],
-            'password' => $this->configs['password']
+            'password' => $this->configs['password'],
         ];
         return $config;
     }
@@ -125,7 +125,7 @@ class RedisClient {
         $config = [
             'host' => $masters[0],
             'port' => $masters[1],
-            'password' => $this->configs['password']
+            'password' => $this->configs['password'],
         ];
         return $config;
     }
@@ -142,7 +142,7 @@ class RedisClient {
         $config = [
             'host' => $slaves[$random]['ip'],
             'port' => $slaves[$random]['port'],
-            'password' => $this->configs['password']
+            'password' => $this->configs['password'],
         ];
         return $config;
     }
@@ -166,7 +166,7 @@ class RedisClient {
             'hGetAll',
             'sMembers',
             'zRange',
-            'exists'
+            'exists',
         ]; //只读的操作
        if (in_array($command, $readOnlyCommands)) {
             $masterOrSlave = 'slave';

@@ -6,20 +6,20 @@ class RedisSentinel {
     private $handle;
     private $nodes;
 
-    public function __construct(){
+    public function __construct() {
         $this->handle = false;
-        $this->nodes = array();
+        $this->nodes = [];
     }
 
     //加入多个节点
-    public function addnode($host, $port){
+    public function addnode($host, $port) {
         $len = count($this->nodes);
         $this->nodes[$len]['host'] = $host;
         $this->nodes[$len]['port'] = $port;
     }
 
     //建立连接
-    public function connection(){
+    public function connection() {
         if (!$this->handle) {
             for($i=0; $i < count($this->nodes); $i++){
                 if (!$sock = fsockopen($this->nodes[$i]['host'], $this->nodes[$i]['port'], $errno, $errstr)) {continue;}
@@ -31,7 +31,7 @@ class RedisSentinel {
     }
 
     //执行命令
-    public function command($commands){
+    public function command($commands) {
         $this->connection();
         if ( !$this->handle ) {return false;}
         if ( is_array($commands) ){$commands = implode("\r\n", $commands);}
@@ -43,7 +43,7 @@ class RedisSentinel {
     }
 
     //获取子节点
-    public function get_slaves($mastername){
+    public function get_slaves($mastername) {
         $key = 'slaves '.$mastername;
         if ($this->command("SENTINEL {$key}") == false){
             return false;
@@ -52,7 +52,7 @@ class RedisSentinel {
     }
 
     //masters,获取主服务
-    public function get_masters($mastername){
+    public function get_masters($mastername) {
         $key = 'get-master-addr-by-name '.$mastername;
         if ($this->command("SENTINEL {$key}") == false){
             return false;
@@ -70,13 +70,13 @@ class RedisSentinel {
     }
 
     //其他命令返回信息
-    public function get_response(){
+    public function get_response() {
         if ( !$this->handle ) return false;
         return trim(fgets($this->handle), "\r\n ");
     }
 
     //获取master信息
-    public function get_masterinfo($handle){
+    public function get_masterinfo($handle) {
         if ( !$handle ) return false;
         $col = intval(substr(trim(fgets($handle)), 1));
         if(feof($handle)) return false;
@@ -93,7 +93,7 @@ class RedisSentinel {
     }
 
     //获取节点信息
-    public function get_nodeinfo($handle){
+    public function get_nodeinfo($handle) {
         if ( !$handle ) return false;
         $col = intval(substr(trim(fgets($handle)), 1));
         if(feof($handle)) return false;
