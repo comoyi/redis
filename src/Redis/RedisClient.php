@@ -206,8 +206,40 @@ class RedisClient {
      * @return
      */
     public function evaluate ($script, $args, $quantity) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->eval($script, $args, $quantity);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->eval($script, $args, $quantity);
+    }
+
+    /**
+     * 根据脚本sha1执行对应lua脚本
+     *
+     * Evaluates a script cached on the server side by its SHA1 digest.
+     *
+     * @param string $scriptSha 脚本代码sha1值
+     * @param array $args 传给脚本的KEYS, ARGV组成的索引数组（不是key-value对应，是先KEYS再ARGV的索引数组，KEYS, ARGV数量可以不同） 例：['key1', 'key2', 'argv1', 'argv2', 'argv3']
+     * @param int $quantity 传给脚本的KEY数量
+     */
+    public function evalSha($scriptSha, $args, $quantity) {
+        return $this->getHandler($this->judge(__FUNCTION__))->evalSha($scriptSha, $args, $quantity);
+    }
+
+    /**
+     * 执行script
+     *
+     * @param string $command
+     * @param string $script
+     * @return
+     */
+    public function script($command, $script) {
+        return $this->getHandler($this->judge(__FUNCTION__))->script($command, $script);
+    }
+
+    /**
+     * 根据正则获取key
+     *
+     * @param $pattern
+     */
+    public function keys($pattern) {
+        return $this->getHandler($this->judge(__FUNCTION__))->keys($pattern);
     }
 
     /**
@@ -216,9 +248,8 @@ class RedisClient {
      * @param string $key key
      * @return
      */
-    public function get($key){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->get($key);
-        return $result;
+    public function get($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->get($key);
     }
 
     /**
@@ -239,256 +270,96 @@ class RedisClient {
      * @param array $opt 可选参数  可选参数可以自由组合 nx: key不存在时有效, xx: key存在时有效, ex: ttl[单位：s], px: ttl[单位：ms]
      * @return
      */
-    public function set($key, $value, $opt = null){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->set($key, $value, $opt);
-        return $result;
+    public function set($key, $value, $opt = null) {
+        return $this->getHandler($this->judge(__FUNCTION__))->set($key, $value, $opt);
     }
 
     /**
      * 设置key - value同时设置剩余有效期
+     *
+     * 不建议使用
+     * 请使用set方式代替
+     *
+     * Note: Since the SET command options can replace SETNX, SETEX, PSETEX,
+     * it is possible that in future versions of Redis these three commands will be deprecated and finally removed.
      *
      * @param string $key key
      * @param int $seconds 剩余有效期 （单位：s / 秒）
      * @param string $value
      * @return
      */
-    public function setEx($key, $seconds, $value){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->setEx($key, $seconds, $value);
-        return $result;
+    public function setEx($key, $seconds, $value) {
+        return $this->getHandler($this->judge(__FUNCTION__))->setEx($key, $seconds, $value);
     }
 
     /**
      * 设置key - value （仅在当前key不存在时有效）
      *
+     * 不建议使用
+     * 请使用set方式代替
+     *
+     * Note: Since the SET command options can replace SETNX, SETEX, PSETEX,
+     * it is possible that in future versions of Redis these three commands will be deprecated and finally removed.
+     *
      * @param string $key key
      * @param string $value value
      * @return
      */
-    public function setNx($key, $value){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->setNx($key, $value);
-        return $result;
+    public function setNx($key, $value) {
+        return $this->getHandler($this->judge(__FUNCTION__))->setNx($key, $value);
     }
 
     /**
-     * 获取hash一个指定字段的值
+     * 设置生存时长
      *
      * @param string $key key
-     * @param string $field 字段
+     * @param int $seconds 生存时长（单位：秒）
      * @return
      */
-    public function hGet($key, $field){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->hGet($key, $field);
-        return $result;
+    public function expire($key, $seconds) {
+        return $this->getHandler($this->judge(__FUNCTION__))->expire($key, $seconds);
     }
 
     /**
-     * 获取hash多个指定字段的值
-     *
-     * @param string $key key
-     * @param array $array 字段索引数组
-     * @return
-     */
-    public function hMGet($key, $array){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->hMGet($key, $array);
-        return $result;
-    }
-
-    /**
-     * 获取整个hash的值
-     *
-     * @param string $key key
-     * @return
-     */
-    public function hGetAll($key){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->hGetAll($key);
-        return $result;
-    }
-
-    /**
-     * 设置hash一个字段
-     *
-     * @param string $key key
-     * @param string $field 字段
-     * @param string $value 值
-     * @return
-     */
-    public function hSet($key, $field, $value){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->hSet($key, $field, $value);
-        return $result;
-    }
-
-    /**
-     * 设置hash多个字段
-     *
-     * @param string $key key
-     * @param array $array 要设置的hash字段 例：['field1' => 'value1', 'field2' => 'value2']
-     * @return
-     */
-    public function hMSet($key, $array){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->hMSet($key, $array);
-        return $result;
-    }
-
-    /**
-     * 往set集合添加成员
-     *
-     * @param string $key key
-     * @param string $member 成员
-     * @return
-     */
-    public function sAdd($key, $member){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->sAdd($key, $member);
-        return $result;
-    }
-
-    /**
-     * 获取集合所有成员
-     *
-     * @param string $key key
-     * @return
-     */
-    public function sMembers($key){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->sMembers($key);
-        return $result;
-    }
-
-    /**
-     * 从集合中移除指定的成员
-     *
-     * @param string $key key
-     * @param string $member 成员
-     * @return
-     */
-    public function sRem($key, $member){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->sRem($key, $member);
-        return $result;
-    }
-
-    /**
-     * 往有序集合添加成员
-     *
-     * @param string $key key
-     * @param int $score score
-     * @param string $value value
-     * @return
-     */
-    public function zAdd($key, $score, $value){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zAdd($key, $score, $value);
-        return $result;
-    }
-
-    /**
-     * 获取有序集合中成员的score
+     * 设置生存时长 - 毫秒级
      *
      * @param string $key
-     * @param string $member
+     * @param int $milliseconds 生存时长（单位：毫秒）
      * @return mixed
      */
-    public function zScore($key, $member) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zScore($key, $member);
-        return $result;
+    public function pExpire($key, $milliseconds) {
+        return $this->getHandler($this->judge(__FUNCTION__))->pExpire($key, $milliseconds);
     }
 
     /**
-     * 从有序集合获取指定范围内的成员（按score从小到大）
+     * 设置生存截止时间戳
      *
      * @param string $key key
-     * @param int $start 起始值
-     * @param int $stop 截止值
-     * @param bool $isWithScore 是否包含score值
+     * @param int $timestamp 生存截止时间戳
      * @return
      */
-    public function zRange($key, $start, $stop, $isWithScore = false){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zRange($key, $start, $stop, $isWithScore);
-        return $result;
+    public function expireAt($key, $timestamp) {
+        return $this->getHandler($this->judge(__FUNCTION__))->expireAt($key, $timestamp);
     }
 
     /**
-     * 获取有序集合指定范围内的元素，根据score从高到低
+     * 设置生存截止时间戳 - 毫秒极
+     *
+     * @param string $key key
+     * @param int $millisecondsTimestamp 生存截止时间戳（单位：毫秒）
+     * @return
+     */
+    public function pExpireAt($key, $millisecondsTimestamp) {
+        return $this->getHandler($this->judge(__FUNCTION__))->pExpireAt($key, $millisecondsTimestamp);
+    }
+
+    /**
+     * 获取key的生存时间
      *
      * @param string $key
-     * @param int $start
-     * @param int $stop
-     * @param bool $isWithScore
-     * @return mixed
      */
-    public function zRevRange($key, $start, $stop, $isWithScore = false) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zRevRange($key, $start, $stop, $isWithScore);
-        return $result;
-    }
-
-    /**
-     * 获取member的排名，排名根据score从高到低，排名从0开始
-     *
-     * @param string $key
-     * @param string $member
-     * @return mixed
-     */
-    public function zRevRank($key, $member) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zRevRank($key, $member);
-        return $result;
-    }
-
-    /**
-     * 从有序集合移除指定的成员
-     *
-     * @param string $key key
-     * @param string $member 成员
-     * @return
-     */
-    public function zRem($key, $member){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zRem($key, $member);
-        return $result;
-    }
-
-    /**
-     * 从有序集合中移除指定排名范围内的成员
-     *
-     * @param string $key key
-     * @param int $start 起始排名 （包含） 从0开始
-     * @param int $stop 截止排名 （包含） 从0开始
-     * @return
-     */
-    public function zRemRangeByRank($key, $start, $stop){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zRemRangeByRank($key, $start, $stop);
-        return $result;
-    }
-
-    /**
-     * 从有序集合中移除指定score范围内的成员
-     *
-     * @param string $key key
-     * @param int $min 起始score （包含）
-     * @param int $max 截止score （包含）
-     * @return
-     */
-    public function zRemRangeByScore($key, $min, $max){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zRemRangeByScore($key, $min, $max);
-        return $result;
-    }
-
-    /**
-     * 设置生存时间
-     *
-     * @param string $key key
-     * @param int $seconds 生存时间（单位：秒）
-     * @return
-     */
-    public function expire($key, $seconds){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->expire($key, $seconds);
-        return $result;
-    }
-
-    /**
-     * 设置生存时间-毫秒级
-     *
-     * @param string $key
-     * @param int $milliSeconds 生存时间（单位：毫秒）
-     * @return mixed
-     */
-    public function pExpire($key, $milliSeconds){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->pExpire($key, $milliSeconds);
-        return $result;
+    public function ttl($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->ttl($key);
     }
 
     /**
@@ -497,20 +368,18 @@ class RedisClient {
      * @param string $key key
      * @return
      */
-    public function del($key){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->del($key);
-        return $result;
+    public function del($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->del($key);
     }
 
     /**
      * 判断key是否存在
      *
-     * @param $key
+     * @param string $key
      * @return
      */
-    public function exists($key){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->exists($key);
-        return $result;
+    public function exists($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->exists($key);
     }
 
     /**
@@ -519,9 +388,8 @@ class RedisClient {
      * @param string $message 消息内容
      * @return
      */
-    public function publish($channel, $message){
-        $result = $this->getHandler($this->judge(__FUNCTION__))->publish($channel, $message);
-        return $result;
+    public function publish($channel, $message) {
+        return $this->getHandler($this->judge(__FUNCTION__))->publish($channel, $message);
     }
 
     /**
@@ -531,8 +399,7 @@ class RedisClient {
      * @return
      */
     public function incr($key) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->incr($key);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->incr($key);
     }
 
     /**
@@ -543,8 +410,17 @@ class RedisClient {
      * @return
      */
     public function incrBy($key, $increment) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->incrBy($key, $increment);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->incrBy($key, $increment);
+    }
+
+    /**
+     * 自减 - 减幅为1
+     *
+     * @param string $key key
+     * @return
+     */
+    public function decr($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->decr($key);
     }
 
     /**
@@ -555,8 +431,97 @@ class RedisClient {
      * @return
      */
     public function decrBy($key, $decrement) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->decrBy($key, $decrement);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->decrBy($key, $decrement);
+    }
+
+    /**
+     * 获取hash一个指定field的值
+     *
+     * @param string $key key
+     * @param string $field
+     * @return
+     */
+    public function hGet($key, $field) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hGet($key, $field);
+    }
+
+    /**
+     * 获取hash多个指定field
+     *
+     * @param string $key key
+     * @param array $array field索引数组
+     * @return
+     */
+    public function hMGet($key, $array) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hMGet($key, $array);
+    }
+
+    /**
+     * 获取整个hash的值
+     *
+     * @param string $key key
+     * @return
+     */
+    public function hGetAll($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hGetAll($key);
+    }
+
+    /**
+     * 设置hash一个field
+     *
+     * @param string $key key
+     * @param string $field
+     * @param string $value
+     * @return
+     */
+    public function hSet($key, $field, $value) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hSet($key, $field, $value);
+    }
+
+    /**
+     * 设置hash多个field
+     *
+     * @param string $key key
+     * @param array $array 要设置的hash field 例：['field1' => 'value1', 'field2' => 'value2']
+     * @return
+     */
+    public function hMSet($key, $array) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hMSet($key, $array);
+    }
+
+    /**
+     * hash中是否存在指定field
+     *
+     * 1 if the hash contains field.
+     * 0 if the hash does not contain field, or key does not exist.
+     *
+     * @param string $key key
+     * @param string $field
+     * @return
+     */
+    public function hExists($key, $field) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hExists($key, $field);
+    }
+
+    /**
+     * 获取hash所有field
+     *
+     * @param string $key
+     */
+    public function hKeys($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hKeys($key);
+    }
+
+
+    /**
+     * 移除hash中指定field
+     *
+     * @param string $key key
+     * @param string $field
+     * @return
+     */
+    public function hDel($key, $field) {
+        return $this->getHandler($this->judge(__FUNCTION__))->hDel($key, $field);
     }
 
     /**
@@ -567,8 +532,7 @@ class RedisClient {
      * @return
      */
     public function lPush($key, $value) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->lPush($key, $value);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->lPush($key, $value);
     }
 
     /**
@@ -579,8 +543,27 @@ class RedisClient {
      * @return
      */
     public function rPush($key, $value) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->rPush($key, $value);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->rPush($key, $value);
+    }
+
+    /**
+     * 删除并返回列表中第一个元素
+     *
+     * @param string $key
+     * @return mixed
+     */
+    public function lPop($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->lPop($key);
+    }
+
+    /**
+     * 删除并返回列表中最后一个元素
+     *
+     * @param string $key
+     * @return mixed
+     */
+    public function rPop($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->rPop($key);
     }
 
     /**
@@ -594,8 +577,7 @@ class RedisClient {
      * @param int $stop 截止
      */
     public function lRange($key, $start, $stop) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->lRange($key, $start, $stop);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->lRange($key, $start, $stop);
     }
 
     /**
@@ -606,21 +588,179 @@ class RedisClient {
      * @param int $stop 截止
      */
     public function lTrim($key, $start, $stop) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->lTrim($key, $start, $stop);
-        return $result;
+        return $this->getHandler($this->judge(__FUNCTION__))->lTrim($key, $start, $stop);
+    }
+
+    /**
+     * 获取列表长度
+     *
+     * @param string $key
+     * @return
+     */
+    public function lLen($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->lLen($key);
+    }
+
+    /**
+     * 往set集合添加成员
+     *
+     * @param string $key key
+     * @param string $member 成员
+     * @return
+     */
+    public function sAdd($key, $member) {
+        return $this->getHandler($this->judge(__FUNCTION__))->sAdd($key, $member);
+    }
+
+    /**
+     * 获取集合所有成员
+     *
+     * @param string $key key
+     * @return
+     */
+    public function sMembers($key) {
+        return $this->getHandler($this->judge(__FUNCTION__))->sMembers($key);
+    }
+
+    /**
+     * 从集合中移除指定的成员
+     *
+     * @param string $key key
+     * @param string $member 成员
+     * @return
+     */
+    public function sRem($key, $member) {
+        return $this->getHandler($this->judge(__FUNCTION__))->sRem($key, $member);
+    }
+
+    /**
+     * 往有序集合添加成员
+     *
+     * @param string $key key
+     * @param int $score score
+     * @param string $value value
+     * @return
+     */
+    public function zAdd($key, $score, $value) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zAdd($key, $score, $value);
+    }
+
+    /**
+     * 获取有序集合中成员的score
+     *
+     * @param string $key
+     * @param string $member
+     * @return mixed
+     */
+    public function zScore($key, $member) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zScore($key, $member);
     }
 
     /**
      * 增加有序集合score值
      *
      * @param string $key key
-     * @param int $amount 增长的数值
+     * @param int $increment 增长的数值
      * @param string $value value值
      * @return
      */
-    public function zIncrBy($key, $amount, $value) {
-        $result = $this->getHandler($this->judge(__FUNCTION__))->zIncrBy($key, $amount, $value);
-        return $result;
+    public function zIncrBy($key, $increment, $value) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zIncrBy($key, $increment, $value);
+    }
+
+    /**
+     * 从有序集合获取指定范围内的成员（按score从小到大）
+     *
+     * @param string $key key
+     * @param int $start 起始值
+     * @param int $stop 截止值
+     * @param bool $isWithScore 是否包含score值
+     * @return
+     */
+    public function zRange($key, $start, $stop, $isWithScore = false) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zRange($key, $start, $stop, $isWithScore);
+    }
+
+    /**
+     * 获取有序集合指定范围内的元素，根据score从高到低
+     *
+     * @param string $key
+     * @param int $start
+     * @param int $stop
+     * @param bool $isWithScore
+     * @return mixed
+     */
+    public function zRevRange($key, $start, $stop, $isWithScore = false) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zRevRange($key, $start, $stop, $isWithScore);
+    }
+
+    /**
+     * 获取score在max和min之间的所有元素
+     *
+     * @param string $key
+     * @param int $max 最大值
+     * @param int $min 最小值
+     * @param bool $isWithScore
+     */
+    public function zRevRangeByScore($key, $max, $min, $isWithScore = false) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zRevRangeByScore($key, $max, $min, $isWithScore);
+
+    }
+
+    /**
+     * 获取member的排名，排名根据score从高到低，排名从0开始
+     *
+     * @param string $key
+     * @param string $member
+     * @return mixed
+     */
+    public function zRevRank($key, $member) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zRevRank($key, $member);
+    }
+
+    /**
+     * 从有序集合移除指定的成员
+     *
+     * @param string $key key
+     * @param string $member 成员
+     * @return
+     */
+    public function zRem($key, $member) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zRem($key, $member);
+    }
+
+    /**
+     * 从有序集合中移除指定排名范围内的成员
+     *
+     * @param string $key key
+     * @param int $start 起始排名 （包含） 从0开始
+     * @param int $stop 截止排名 （包含） 从0开始
+     * @return
+     */
+    public function zRemRangeByRank($key, $start, $stop) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zRemRangeByRank($key, $start, $stop);
+    }
+
+    /**
+     * 从有序集合中移除指定score范围内的成员
+     *
+     * @param string $key key
+     * @param int $min 起始score （包含）
+     * @param int $max 截止score （包含）
+     * @return
+     */
+    public function zRemRangeByScore($key, $min, $max) {
+        return $this->getHandler($this->judge(__FUNCTION__))->zRemRangeByScore($key, $min, $max);
+    }
+
+    /**
+     * 当访问不存在或者没权限访问的方法时会访问此方法
+     *
+     * @param $method
+     * @param $parameters
+     */
+    public function __call($method, $parameters) {
+        return $this->getHandler($this->judge($method))->{$method}(...$parameters);
     }
 
 }
