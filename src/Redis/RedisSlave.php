@@ -9,15 +9,26 @@ use Redis;
  */
 class RedisSlave {
 
-    /* 配置项 */
-    private $configs = [];
+    /**
+     * 配置
+     *
+     * @var array
+     */
+    protected $configs = [];
 
-    private $handler = false;
+    /**
+     * Redis
+     *
+     * @var Redis
+     */
+    protected $handler = null;
 
     /**
      * 构造
+     *
+     * @param array $config
      */
-    public function __construct($config){
+    public function __construct($config) {
         $defaultConfig = [
             'host' => '',
             'port' => '',
@@ -28,22 +39,24 @@ class RedisSlave {
 
         $this->connect();
 
-        if('' !== $this->configs['password']){
+        if('' !== $this->configs['password']) {
             $this->auth();
         }
     }
 
     /**
      * 设置配置
+     *
+     * @param array $configs
      */
-    public function setConfigs($configs){
+    public function setConfigs($configs) {
         $this->configs = array_merge($this->configs, $configs);
     }
 
     /**
      * 连接
      */
-    public function connect(){
+    public function connect() {
         $this->handler = new Redis();
         $this->handler->connect($this->configs['host'], $this->configs['port']);
     }
@@ -51,14 +64,14 @@ class RedisSlave {
     /**
      * 验证
      */
-    public function auth(){
+    public function auth() {
         $this->handler->auth($this->configs['password']);
     }
 
     /**
      * 获取连接
      */
-    public function getHandler(){
+    public function getHandler() {
         return $this->handler;
     }
 
