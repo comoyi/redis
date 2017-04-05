@@ -93,14 +93,14 @@ class RedisClient {
         $this->setConfig($defaultConfig);
         $this->setConfig($config);
 
-        $this->masterName = $this->configs['master_name'];
-
         if('sentinel' === $this->configs['type']) { // sentinel方式
+            $this->masterName = $this->configs['master_name'];
+
             $this->sentinel = new RedisSentinel(); //创建sentinel
 
             // 根据配置添加sentinel
             foreach ($this->configs['sentinel']['sentinels'] as $s) {
-                $this->sentinel->addnode($s['host'], $s['port']);
+                $this->sentinel->addNode($s['host'], $s['port']);
             }
         }
 
@@ -145,7 +145,7 @@ class RedisClient {
      * 通过sentinel获取master配置
      */
     protected function getMasterConfigsBySentinel() {
-        $masters = $this->sentinel->get_masters($this->masterName);
+        $masters = $this->sentinel->getMasters($this->masterName);
         $config = [
             'host' => $masters[0],
             'port' => $masters[1],
@@ -158,7 +158,7 @@ class RedisClient {
      * 通过sentinel获取slave配置
      */
     protected function getSlaveConfigsBySentinel() {
-        $slaves = $this->sentinel->get_slaves($this->masterName);
+        $slaves = $this->sentinel->getSlaves($this->masterName);
         if(0 === count($slaves)) { // 没有slave则取master
             return $this->getMasterConfigsBySentinel();
         }
